@@ -1,18 +1,20 @@
 package com.bingoyes.kafka.rearrange.manual;
 
+import com.bingoyes.kafka.rearrange.manual.util.QuickSortUtil;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProcessWindow {
+public class ProcessorWindow {
     private long startTime;
     private long endTime;
     private List<MessageRecord> recordList;
 
     private MessageRecord currPointer;
 
-    private RearrangeThread context;
+    private OneTopicRearrangeProcessor context;
 
-    public ProcessWindow(RearrangeThread context,long startTime,long endTime){
+    public ProcessorWindow(OneTopicRearrangeProcessor context, long startTime, long endTime){
         this.context = context;
         this.startTime = startTime;
         this.endTime = endTime;
@@ -56,6 +58,11 @@ public class ProcessWindow {
         kafkaSinkService.sendMessage(list);
     }
 
+    /**
+     * 数据记录排序
+     * @param list
+     * @return
+     */
     public MessageRecord[] getOrderedRecordList(List<MessageRecord> list){
         List<MessageRecord> resultList = new ArrayList<>();
         MessageRecord[] listArray = list.toArray(new MessageRecord[]{});
