@@ -1,5 +1,6 @@
 package com.bingoyes.kafka.rearrange.manual;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ProcessWindow {
@@ -9,7 +10,10 @@ public class ProcessWindow {
 
     private MessageRecord currPointer;
 
-    public ProcessWindow(long startTime,long endTime){
+    private RearrangeThread context;
+
+    public ProcessWindow(RearrangeThread context,long startTime,long endTime){
+        this.context = context;
         this.startTime = startTime;
         this.endTime = endTime;
     }
@@ -44,7 +48,14 @@ public class ProcessWindow {
     }
 
     public void triggerProcess(){
+        List<MessageRecord> list = getOrderedRecordList(this.recordList);
+        KafkaSinkService kafkaSinkService = context.getKafkaSinkService();
+        kafkaSinkService.sendMessage(list);
+    }
 
+    public List<MessageRecord> getOrderedRecordList(List<MessageRecord> list){
+        List<MessageRecord> resultList = new ArrayList<>();
+        return resultList;
     }
 
     public long getStartTime() {

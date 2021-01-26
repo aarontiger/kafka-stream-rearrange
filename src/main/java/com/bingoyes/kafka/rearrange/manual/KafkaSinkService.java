@@ -16,9 +16,9 @@ import java.util.List;
 import java.util.Properties;
 import java.util.concurrent.ExecutionException;
 
-public class KafkaService {
+public class KafkaSinkService {
 
-    public KafkaService(String topic){
+    public KafkaSinkService(String topic){
         this.topic = topic;
     }
 
@@ -63,10 +63,10 @@ public class KafkaService {
         return  recordList;
     }
 
-    public void sendMessage(String topic,List<MessageRecord> recordList){
+    public void sendMessage(List<MessageRecord> recordList){
         Properties kafkaPropertie = new Properties();
         //配置broker地址，配置多个容错
-        kafkaPropertie.put("bootstrap.servers", "192.168.90.20:9092");
+        kafkaPropertie.put("bootstrap.servers", "192.168.60.20:9092");
         //配置key-value允许使用参数化类型
         kafkaPropertie.put("key.serializer","org.apache.kafka.common.serialization.StringSerializer");
         kafkaPropertie.put("value.serializer","org.apache.kafka.common.serialization.StringSerializer");

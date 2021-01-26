@@ -12,13 +12,15 @@ public class RearrangeThread extends Thread {
 
     private int windowSize=1;
 
-    private KafkaService kafkaService;
+    private KafkaSourceService kafkaSourceService;
+    private KafkaSinkService kafkaSinkService;
 
     //最后一个被处理window的key(开始时间)
     private long latestProcessedWindow;
 
-    public RearrangeThread(KafkaService kafkaService){
-        this.kafkaService = kafkaService;
+    public RearrangeThread(KafkaSourceService kafkaSourceService,KafkaSinkService kafkaSinkService){
+        this.kafkaSourceService = kafkaSourceService;
+        this.kafkaSinkService = kafkaSinkService;
     }
 
     public Date getCurrentWatermark(){
@@ -30,7 +32,7 @@ public class RearrangeThread extends Thread {
 
         while(true){
 
-            List<MessageRecord> recordList = kafkaService.readMessage();
+            List<MessageRecord> recordList = kafkaSourceService.readMessage();
             for(MessageRecord record:recordList){
                 processRecord(record);
             }
@@ -53,7 +55,7 @@ public class RearrangeThread extends Thread {
 
         ProcessWindow processWindow = getWindow(windowsStart);
         if(processWindow==null) {
-            processWindow = new ProcessWindow(windowsStart, windowsStart + windowSize);
+            processWindow = new ProcessWindow(this,windowsStart, windowsStart + windowSize);
             windowList.put(windowsStart, processWindow);
         }
     }
@@ -74,10 +76,19 @@ public class RearrangeThread extends Thread {
                     ProcessWindow processWindow = windowArray[i];
                     if(watermark>=processWindow.getEndTime()){
                         processWindow.triggerProcess();
+                        //删除处理完成的widow
                         windowList.remove(processWindow.getStartTime());
                     }
                 }
             }
         }
+    }
+
+    public KafkaSinkService getKafkaSinkService() {
+        return kafkaSinkService;
+    }
+
+    public void setKafkaSinkService(KafkaSinkService kafkaSinkService) {
+        this.kafkaSinkService = kafkaSinkService;
     }
 }
