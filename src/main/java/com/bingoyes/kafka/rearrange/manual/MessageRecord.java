@@ -4,21 +4,28 @@ import java.util.Date;
 
 public class MessageRecord {
 
-    private Date timestamp;
-
-
+    private long timestamp;
+    private String domainGroup;
 
     private MessageRecord next;
 
     private MessageRecord previous;
 
 
-    public Date getTimestamp() {
+    public long getTimestamp() {
         return timestamp;
     }
 
-    public void setTimestamp(Date timestamp) {
+    public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getDomainGroup() {
+        return domainGroup;
+    }
+
+    public void setDomainGroup(String domainGroup) {
+        this.domainGroup = domainGroup;
     }
 
     public MessageRecord getNext() {

@@ -47,15 +47,20 @@ public class ProcessWindow {
 //        }
     }
 
-    public void triggerProcess(){
-        List<MessageRecord> list = getOrderedRecordList(this.recordList);
+    /**
+     * 该窗口的排序并输出
+     */
+    public void triggerSortAndOutput(){
+        MessageRecord[] list = getOrderedRecordList(this.recordList);
         KafkaSinkService kafkaSinkService = context.getKafkaSinkService();
         kafkaSinkService.sendMessage(list);
     }
 
-    public List<MessageRecord> getOrderedRecordList(List<MessageRecord> list){
+    public MessageRecord[] getOrderedRecordList(List<MessageRecord> list){
         List<MessageRecord> resultList = new ArrayList<>();
-        return resultList;
+        MessageRecord[] listArray = list.toArray(new MessageRecord[]{});
+        QuickSortUtil.quickSort(listArray);
+        return listArray;
     }
 
     public long getStartTime() {

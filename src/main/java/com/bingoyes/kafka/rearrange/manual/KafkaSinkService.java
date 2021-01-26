@@ -63,7 +63,7 @@ public class KafkaSinkService {
         return  recordList;
     }
 
-    public void sendMessage(List<MessageRecord> recordList){
+    public void sendMessage(MessageRecord[] recordList){
         Properties kafkaPropertie = new Properties();
         //配置broker地址，配置多个容错
         kafkaPropertie.put("bootstrap.servers", "192.168.60.20:9092");
