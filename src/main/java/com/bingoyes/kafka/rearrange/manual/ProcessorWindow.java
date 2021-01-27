@@ -1,14 +1,19 @@
 package com.bingoyes.kafka.rearrange.manual;
 
 import com.bingoyes.kafka.rearrange.manual.util.QuickSortUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ProcessorWindow {
+
+    private static Logger logger = LoggerFactory.getLogger(KafkaSourceService.class);
+
     private long startTime;
     private long endTime;
-    private List<MessageRecord> recordList;
+    private List<MessageRecord> recordList = new ArrayList<>();
 
     private MessageRecord currPointer;
 
@@ -22,6 +27,8 @@ public class ProcessorWindow {
     public void addRecord(MessageRecord record){
 
         recordList.add(record);
+        System.out.println("add record:"+record.getTimestamp());
+        System.out.println("window record size:"+recordList.size());
 
         //形成双向链表
 //        if(currPointer!=null){
@@ -53,6 +60,7 @@ public class ProcessorWindow {
      * 该窗口的排序并输出
      */
     public void triggerSortAndOutput(){
+        System.out.println("kafka output begin:"+recordList.size());
         MessageRecord[] list = getOrderedRecordList(this.recordList);
         KafkaSinkService kafkaSinkService = context.getKafkaSinkService();
         kafkaSinkService.sendMessage(list);

@@ -1,11 +1,14 @@
 package com.bingoyes.kafka.rearrange.manual;
 
 import java.util.Date;
+import java.util.Hashtable;
 
 public class MessageRecord {
 
     private long timestamp;
     private String domainGroup;
+
+    private Hashtable properties;
 
     private MessageRecord next;
 
@@ -42,5 +45,13 @@ public class MessageRecord {
 
     public void setPrevious(MessageRecord previous) {
         this.previous = previous;
+    }
+
+    public Hashtable getProperties() {
+        return properties;
+    }
+
+    public void setProperties(Hashtable properties) {
+        this.properties = properties;
     }
 }
