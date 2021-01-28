@@ -57,7 +57,7 @@ public class KafkaSourceService {
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         //props.put("auto.offset.reset", "latest");
         //props.put("auto.offset.reset", "earliest");
-        props.put("max.poll.records", 50);
+        props.put("max.poll.records", 500);
         props.put("auto.commit.interval.ms", 1000*600);
 
 
@@ -92,6 +92,37 @@ public class KafkaSourceService {
             messageRecord.setTimestamp(recordJson.getLong("timestamp"));
             recordList.add(messageRecord);
 
+        }
+
+        //consumer.commitSync();
+        return  recordList;
+    }
+
+    public List<MessageRecord> readMessage(int runSecond){
+
+        long startTime = new Date().getTime()/1000;
+
+        List<ConsumerRecord<String, String>> list = new ArrayList<>();
+
+
+        List<MessageRecord> recordList = new ArrayList<>();
+        while(true) {
+            ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
+            for (ConsumerRecord<String, String> record : records) {
+
+                System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+
+                MessageRecord messageRecord = new MessageRecord();
+
+                JSONObject recordJson = JSON.parseObject(record.value());
+                messageRecord.setTimestamp(recordJson.getLong("timestamp"));
+                recordList.add(messageRecord);
+
+            }
+            long currentTime = new Date().getTime()/1000;
+
+            //运行分钟
+            if(currentTime-startTime>runSecond) break;
         }
 
         //consumer.commitSync();

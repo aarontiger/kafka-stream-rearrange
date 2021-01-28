@@ -17,10 +17,12 @@ public class KafkaRearrangeMain {
     private List<OneTopicRearrangeProcessor> threadList = new ArrayList<>();
 
     //允许最慢topic和最慢topic之间的最大差值
-    private long allowMaxAHeadWindowNum=10;
-    //最慢的topic当前窗口标识(窗口开始时间）
-    private long slowestThreadLatestWindowId =0;
-    //最慢topci线程Id
+    private long allowMaxAHeadSeconds=10*60;
+
+    //////
+    private long slowestThreadEventTime =0;
+
+    //最慢topic线程Id
     private long slowestThreadIndex = -1;
 
     public void startAllThread() {
@@ -51,7 +53,7 @@ public class KafkaRearrangeMain {
         OneTopicRearrangeProcessor[] threadArray = threadList.toArray(new OneTopicRearrangeProcessor[]{});
 
         for(int j=0;j<threadList.size()-1;j++){
-           if(threadArray[j].getLatestProcessedWindowId()<threadArray[j+1].getLatestProcessedWindowId()) {
+           if(threadArray[j].getLatestEventTime()<threadArray[j+1].getLatestEventTime()) {
                OneTopicRearrangeProcessor temp = threadArray[j + 1];
                threadArray[j + 1] = threadArray[j];
                threadArray[j] = temp;
@@ -60,13 +62,35 @@ public class KafkaRearrangeMain {
        return threadArray[threadArray.length-1];
     }
 
-    public long getSlowestThreadLatestWindowId() {
-        return slowestThreadLatestWindowId;
+    //重启数据输入进程（由于该进程的处理的window过去超前，数据输入进程被暂停
+    class ProcessorResumeThread extends Thread{
+
+        public void run(){
+            while(true){
+                System.out.println("InputProcessorResumeThread:");
+
+                for(OneTopicRearrangeProcessor processor:threadList){
+                    //如果窗口数差值在允许范围内，则重新开始输入输入
+                    if(processor.getLatestEventTime()-slowestThreadEventTime<allowMaxAHeadSeconds){
+                        if(processor.getLatch().getCount()>0) {
+                            processor.getLatch().countDown();
+                            System.out.println("resume processor:" +processor.getThreadIndex());
+
+                        }
+
+                    }
+                }
+
+                try {
+                    sleep(30000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 
-    public void setSlowestThreadLatestWindowId(long slowestThreadLatestWindowId) {
-        this.slowestThreadLatestWindowId = slowestThreadLatestWindowId;
-    }
+
 
     public long getSlowestThreadIndex() {
         return slowestThreadIndex;
@@ -76,12 +100,13 @@ public class KafkaRearrangeMain {
         this.slowestThreadIndex = slowestThreadIndex;
     }
 
-    public long getAllowMaxAHeadWindowNum() {
-        return allowMaxAHeadWindowNum;
+
+    public long getSlowestThreadEventTime() {
+        return slowestThreadEventTime;
     }
 
-    public void setAllowMaxAHeadWindowNum(long allowMaxAHeadWindowNum) {
-        this.allowMaxAHeadWindowNum = allowMaxAHeadWindowNum;
+    public long getAllowMaxAHeadSeconds() {
+        return allowMaxAHeadSeconds;
     }
 
     public static void  main(String[] args){
