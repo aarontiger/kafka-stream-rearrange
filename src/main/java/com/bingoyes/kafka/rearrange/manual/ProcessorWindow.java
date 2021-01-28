@@ -17,9 +17,9 @@ public class ProcessorWindow {
 
     private MessageRecord currPointer;
 
-    private OneTopicRearrangeProcessor context;
+    private TopicInputProcessor context;
 
-    public ProcessorWindow(OneTopicRearrangeProcessor context, long startTime, long endTime){
+    public ProcessorWindow(TopicInputProcessor context, long startTime, long endTime){
         this.context = context;
         this.startTime = startTime;
         this.endTime = endTime;
