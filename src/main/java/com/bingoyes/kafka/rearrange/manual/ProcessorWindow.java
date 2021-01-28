@@ -25,8 +25,9 @@ public class ProcessorWindow {
         this.endTime = endTime;
     }
     public void addRecord(MessageRecord record){
-
-        recordList.add(record);
+        synchronized (recordList) {
+            recordList.add(record);
+        }
         System.out.println("add record:"+record.getTimestamp());
         System.out.println("window record size:"+recordList.size());
 
@@ -73,7 +74,10 @@ public class ProcessorWindow {
      */
     public MessageRecord[] getOrderedRecordList(List<MessageRecord> list){
         List<MessageRecord> resultList = new ArrayList<>();
-        MessageRecord[] listArray = list.toArray(new MessageRecord[]{});
+        MessageRecord[] listArray =new MessageRecord[]{};
+        synchronized (list) {
+            listArray = list.toArray(new MessageRecord[]{});
+        }
         QuickSortUtil.quickSort(listArray);
         return listArray;
     }

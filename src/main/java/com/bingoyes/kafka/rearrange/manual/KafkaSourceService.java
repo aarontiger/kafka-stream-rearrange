@@ -28,6 +28,8 @@ public class KafkaSourceService {
 
     private Map topicConfig;
 
+    private String topic;
+
 
     KafkaConsumer<String, String> consumer;
 
@@ -45,7 +47,7 @@ public class KafkaSourceService {
         String user = (String)topicConfig.get("user");
         String password = (String)topicConfig.get("password");
         String groupId = (String)topicConfig.get("group_id");
-        String topic = (String)topicConfig.get("topic");
+        this.topic = (String)topicConfig.get("topic");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", uri);
@@ -120,5 +122,9 @@ public class KafkaSourceService {
             System.out.println("broker返回消息发送信息" + metadata);
         }
 
+    }
+
+    public String getTopic() {
+        return topic;
     }
 }

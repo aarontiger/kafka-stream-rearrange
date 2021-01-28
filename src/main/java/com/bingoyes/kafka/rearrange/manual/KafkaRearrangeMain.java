@@ -29,6 +29,7 @@ public class KafkaRearrangeMain {
 
         List<Map> topicConfigList = kafkaConfigUtil.getTopicConfigList();
 
+        int index = 0; //线程索引编号，从0开始
         for (Map topicConfig : topicConfigList) {
             topicConfig.put("uri",kafkaConfigUtil.getUri());
             topicConfig.put("auth",kafkaConfigUtil.isAuth());
@@ -38,7 +39,7 @@ public class KafkaRearrangeMain {
             KafkaSourceService kafkaSourceService = new KafkaSourceService(topicConfig);
             topicConfig.put("topic2",topicConfig.get("topic").toString()+ "_rearranged");
             KafkaSinkService kafkaSinkService = new KafkaSinkService(topicConfig);
-            int index = 0; //线程索引编号，从0开始
+
             OneTopicRearrangeProcessor thread = new OneTopicRearrangeProcessor(index++, this, kafkaSourceService, kafkaSinkService);
             threadList.add(thread);
             thread.start();
