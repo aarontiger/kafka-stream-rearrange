@@ -33,10 +33,10 @@ public class KafkaSinkService {
     private void init(){
         String uri = (String)topicConfig.get("uri");
         boolean auth = (boolean)topicConfig.get("auth");
-        String user = (String)topicConfig.get("user");
         String password = (String)topicConfig.get("password");
         String groupId = (String)topicConfig.get("group_id");
         this.topic = (String)topicConfig.get("topic2");
+        String user = (String)topicConfig.get("user");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", uri);

@@ -24,6 +24,7 @@ public class KafkaConfigUtil {
     private static Logger logger = LoggerFactory.getLogger(KafkaConfigUtil.class);
 
     private final static String portal_file = "/opt/conf/portal.yml";
+    private final static String kafka_file = "/opt/conf/kafka-stream.yml";
 
     String uri;
     boolean auth;
@@ -34,15 +35,54 @@ public class KafkaConfigUtil {
 
     public KafkaConfigUtil(){
         try {
-            readFormGlobalMain();
-            this.topicConfigList = readFormDaeGraph();
+            //readFormGlobalMain();
+            //this.topicConfigList = readFormDaeGraph();
+            this.topicConfigList = readKafkaConfigFromFile();
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
+    public List<Map> readKafkaConfigFromFile(){
+        Yaml yaml =new Yaml();
+        try{
+            File file = new File(kafka_file);
 
+            Map<String, Map<String, Map<String, Map>>> contentProperties = yaml.load(new FileInputStream(file));
 
+            Map mongo = (Map) contentProperties.get("kafka");
+            List<String> uriList = (List<String>)mongo.get("uri");
+            if(uriList!=null & uriList.size()>0)
+                uri = uriList.get(0);
+
+            Map security = (Map)mongo.get("security");
+            auth = (Boolean) security.get("auth");
+            if(auth) {
+                user = (String) security.get("user");
+                password = (String) security.get("pwd");
+            }
+
+            Map<String,Map> kafkasource = (Map) contentProperties.get("kafkasource");
+            Set<String> keySet = kafkasource.keySet();
+            List<Map>  valueList = new ArrayList<>(kafkasource.values());
+            Map[] valueArray = kafkasource.values().toArray(new Map[]{});
+
+            Map activeKafkaSource = new HashMap();
+
+            //去掉未激活的topic
+            for(String key:keySet){
+                Map topicConf = kafkasource.get(key);
+                boolean active = (boolean)topicConf.get("active");
+                if(active) activeKafkaSource.put(key,kafkasource.get(key));
+            }
+
+            return new ArrayList<Map>(activeKafkaSource.values());
+
+        }catch(Exception e){
+            e.printStackTrace();
+        }
+        return null;
+    }
 
 
     public String  getAmsUrlPrefix(){
@@ -72,77 +112,7 @@ public class KafkaConfigUtil {
 
     }
 
-    private  void readFormGlobalMain() throws Exception {
-
-        String url = getAmsUrlPrefix()+"/apps/global/main";
-        String result = HttpRequest.sendGet(url,"");
-        Yaml yaml =new Yaml();
-
-
-        if(result == null) {
-            throw new Exception("");
-        }else{
-            logger.info("get config from ams global main:\n" +result);
-
-            try {
-                Map<String, Object> contentProperties = yaml.load(result);
-
-                Map mongo = (Map) contentProperties.get("kafka");
-                List<String> uriList = (List<String>)mongo.get("uri");
-                if(uriList!=null & uriList.size()>0)
-                    uri = uriList.get(0);
-
-                Map security = (Map)mongo.get("security");
-                auth = (Boolean) security.get("auth");
-                if(auth) {
-                    user = (String) security.get("user");
-                    password = (String) security.get("pwd");
-                }
-
-            } catch (Exception e) {
-                logger.error("ams get mongo config  error,e");
-                throw e;
-            }
-        }
-    }
-
-    public  List<Map> readFormDaeGraph() throws Exception {
-
-        String url = getAmsUrlPrefix()+"/apps/dae/graph";
-        String result = HttpRequest.sendGet(url,"");
-        Yaml yaml =new Yaml();
-
-
-        if(result == null) {
-            throw new Exception("");
-        }else{
-            logger.info("get config from ams dae graph:\n" +result);
-
-            try {
-                Map<String, Object> contentProperties = yaml.load(result);
-
-                Map<String,Map> kafkasource = (Map) contentProperties.get("kafkasource");
-                Set<String> keySet = kafkasource.keySet();
-                List<Map>  valueList = new ArrayList<>(kafkasource.values());
-                Map[] valueArray = kafkasource.values().toArray(new Map[]{});
-
-                Map activeKafkaSource = new HashMap();
-
-                //去掉未激活的topic
-                for(String key:keySet){
-                    Map topicConf = kafkasource.get(key);
-                    boolean active = (boolean)topicConf.get("active");
-                    if(active) activeKafkaSource.put(key,kafkasource.get(key));
-                }
-
-                return new ArrayList<Map>(activeKafkaSource.values());
-
-            } catch (Exception e) {
-                logger.error("ams get mongo config  error,e");
-                throw e;
-            }
-        }
-    }
+   
 
     public String getUri() {
         return uri;

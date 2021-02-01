@@ -1,30 +1,29 @@
 package com.bingoyes.kafka.rearrange.manual;
 
 import com.bingoyes.kafka.rearrange.manual.util.QuickSortUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 public class OneTopicRearrangeProcessor extends Thread {
+    private static Logger logger = LoggerFactory.getLogger(OneTopicRearrangeProcessor.class);
+
     private int threadIndex;
 
     private KafkaRearrangeMain context;
 
 
-    private KafkaSourceService kafkaSourceService;
-    private KafkaSinkService kafkaSinkService;
-
-
-    ///////
+    private KafkaService kafkaService;
 
     private long latestEventTime = 0;
-    private CountDownLatch latch= new CountDownLatch(0);
+    //private CountDownLatch latch= new CountDownLatch(0);
 
-    public OneTopicRearrangeProcessor(int threadIndex, KafkaRearrangeMain context, KafkaSourceService kafkaSourceService, KafkaSinkService kafkaSinkService){
+    public OneTopicRearrangeProcessor(int threadIndex, KafkaRearrangeMain context, KafkaService kafkaService){
         this.threadIndex = threadIndex;
         this.context = context;
-        this.kafkaSourceService = kafkaSourceService;
-        this.kafkaSinkService = kafkaSinkService;
+        this.kafkaService = kafkaService;
     }
 
     @Override
@@ -34,39 +33,33 @@ public class OneTopicRearrangeProcessor extends Thread {
         while(true){
 
 
-            try {
+       /*     try {
                 latch.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
-            }
-            List<MessageRecord> recordList = kafkaSourceService.readMessage(300);
+            }*/
+
+            List<MessageRecord> recordList = kafkaService.readMessage(600,4);
             System.out.println("thread:"+threadIndex+",get record size:"+recordList.size());
+            if(recordList.size()>0) {
 
-            List<MessageRecord> resultList = new ArrayList<>();
-            MessageRecord[] listArray = recordList.toArray(new MessageRecord[]{});
+                MessageRecord[] listArray = recordList.toArray(new MessageRecord[]{});
 
-            QuickSortUtil.quickSort(listArray);
+                QuickSortUtil.quickSort(listArray);
+                logger.info("thread:"+threadIndex+",sort success");
+                for(MessageRecord messageRecord:listArray){
+                    logger.info("timestamp:"+messageRecord.getTimestamp());
+                }
+                kafkaService.sendMessage(listArray);
+                logger.info("thread:"+threadIndex+",send message success");
 
-            kafkaSinkService.sendMessage(listArray);
-
-            latestEventTime = listArray[listArray.length].getTimestamp();
-            if(latestEventTime-context.getSlowestThreadEventTime()>context.getAllowMaxAHeadSeconds())
-                latch =new CountDownLatch(1);
+                /*latestEventTime = listArray[listArray.length].getTimestamp();
+                context.caculateLowesThread();
+                if (latestEventTime - context.getSlowestThreadEventTime() > context.getAllowMaxAHeadSeconds())
+                    latch = new CountDownLatch(1);*/
+            }
         }
     }
-
-
-
-
-    public KafkaSinkService getKafkaSinkService() {
-        return kafkaSinkService;
-    }
-
-    public void setKafkaSinkService(KafkaSinkService kafkaSinkService) {
-        this.kafkaSinkService = kafkaSinkService;
-    }
-
-
 
     public int getThreadIndex() {
         return threadIndex;
@@ -74,9 +67,5 @@ public class OneTopicRearrangeProcessor extends Thread {
 
     public long getLatestEventTime() {
         return latestEventTime;
-    }
-
-    public CountDownLatch getLatch() {
-        return latch;
     }
 }

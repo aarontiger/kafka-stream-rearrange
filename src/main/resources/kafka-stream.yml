@@ -1,0 +1,44 @@
+kafka:
+  uri:
+  - 192.168.90.5:9092
+  security:
+    auth: true
+    user: admin
+    pwd: admin
+
+kafkasource:
+  ETC:
+    active: false
+    group_id: flink-graph-etc
+    topic: bingoyes-etc
+    start_earliest: true
+    interval: 120
+    size: 60
+  Face:
+    active: false
+    group_id: flink-graph-face2
+    topic: bingoyes-face
+    start_earliest: true
+    interval: 120
+    size: 60
+  IMSI:
+    active: true
+    group_id: flink-graph-imsi
+    topic: bingoyes-imsi
+    start_earliest: false
+    interval: 120
+    size: 60
+  MAC:
+    active: true
+    group_id: flink-graph-mac
+    topic: bingoyes-wifimac
+    start_earliest: false
+    interval: 120
+    size: 60
+  Plate:
+    active: true
+    group_id: flink-graph-plate
+    topic: bingoyes-plate
+    start_earliest: false
+    interval: 120
+    size: 60
