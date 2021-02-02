@@ -56,7 +56,7 @@ public class KafkaService {
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         //props.put("auto.offset.reset", "latest");
         //props.put("auto.offset.reset", "earliest");
-        props.put("max.poll.records", 500);
+        props.put("max.poll.records", 100);
         props.put("auto.commit.interval.ms", 1000*600);
 
 
@@ -112,7 +112,7 @@ public class KafkaService {
             ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
             for (ConsumerRecord<String, String> record : records) {
 
-               System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+               //System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
 
                 MessageRecord messageRecord = new MessageRecord();
 
@@ -155,7 +155,44 @@ public class KafkaService {
         return  recordList;
     }
 
+
+    private KafkaConsumer getCommitConsumer(){
+
+        String uri = (String) sourceTopicConfig.get("uri");
+        boolean auth = (boolean) sourceTopicConfig.get("auth");
+        String user = (String) sourceTopicConfig.get("user");
+        String password = (String) sourceTopicConfig.get("password");
+        String groupId = (String) sourceTopicConfig.get("group_id");
+        this.sourceTopic = (String) sourceTopicConfig.get("topic");
+
+        Properties props = new Properties();
+        props.put("bootstrap.servers", uri);
+        props.put("group.id", groupId);
+        props.put("enable.auto.commit", "false");
+        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        //props.put("auto.offset.reset", "latest");
+        //props.put("auto.offset.reset", "earliest");
+        props.put("max.poll.records", 100);
+        props.put("auto.commit.interval.ms", 1000*600);
+
+
+
+        if(auth) {
+            props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
+            props.put(SaslConfigs.SASL_MECHANISM, "PLAIN");
+            props.put("sasl.jaas.config",
+                    "org.apache.kafka.common.security.plain.PlainLoginModule required username=\""
+                            + user + "\" password=\"" +password + "\";");
+        }
+
+        KafkaConsumer consumer = new KafkaConsumer<>(props);
+        return consumer;
+    }
+
     public void sendMessage(MessageRecord[] recordList){
+
+
 
         for(MessageRecord record:recordList) {
 
@@ -168,25 +205,7 @@ public class KafkaService {
                 metadata = (RecordMetadata) kafkaProducer.send(producerRecord).get();
                 System.out.println("kafka output success:"+record.getTimestamp());
 
-                //提交consumer
-                consumer.commitAsync(record.getCurrentOffsets(), new OffsetCommitCallback() {
-                    @Override
-                    public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets, Exception exception) {
-                        if (null != exception){
-                            logger.info("commit consumer offset 失败");
-                            System.out.println(String.format("==== Commit failed for offsets %s, error:%s ====", offsets, exception.toString()));
-                        }else {
-                            logger.info("commit consumer offset 成功");
 
-                        }
-                        logger.info("offset list:");
-                        Map<TopicPartition, OffsetAndMetadata> currentOffsets = record.getCurrentOffsets();
-                        Set<TopicPartition> keys = currentOffsets.keySet();
-                        for (TopicPartition topicPartition : keys) {
-                            logger.info("partition:" + topicPartition.partition() + ",topic:" + topicPartition.topic() + "offset:" + currentOffsets.get(topicPartition).offset());
-                        }
-                    }
-                });
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -196,6 +215,31 @@ public class KafkaService {
             System.out.println("发送kafka消息成功" + metadata);
         }
 
+    }
+
+    public void commit(Map<TopicPartition, OffsetAndMetadata> offsets){
+        KafkaConsumer commitConsumer = getCommitConsumer();
+        //提交consumer
+        /*this.consumer.commitAsync(offsets, new OffsetCommitCallback() {
+            @Override
+            public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets, Exception exception) {
+                if (null != exception){
+                    logger.info("commit consumer offset 失败");
+                    System.out.println(String.format("==== Commit failed for offsets %s, error:%s ====", offsets, exception.toString()));
+                }else {
+                    logger.info("commit consumer offset 成功");
+
+                }
+                logger.info("offset list:");
+
+                Set<TopicPartition> keys = offsets.keySet();
+                for (TopicPartition topicPartition : keys) {
+                    logger.info("partition:" + topicPartition.partition() + ",topic:" + topicPartition.topic() + "offset:" + offsets.get(topicPartition).offset());
+                }
+            }
+        });*/
+        this.consumer.commitSync(offsets);
+        logger.info("commit success");
     }
 
     public String getSourceTopic() {

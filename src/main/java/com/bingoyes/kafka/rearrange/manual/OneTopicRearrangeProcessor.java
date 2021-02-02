@@ -1,6 +1,8 @@
 package com.bingoyes.kafka.rearrange.manual;
 
 import com.bingoyes.kafka.rearrange.manual.util.QuickSortUtil;
+import org.apache.kafka.clients.consumer.OffsetAndMetadata;
+import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,15 +34,16 @@ public class OneTopicRearrangeProcessor extends Thread {
 
         while(true){
 
-
        /*     try {
                 latch.await();
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }*/
 
+
             List<MessageRecord> recordList = kafkaService.readMessage(600,4);
             System.out.println("thread:"+threadIndex+",get record size:"+recordList.size());
+
             if(recordList.size()>0) {
 
                 MessageRecord[] listArray = recordList.toArray(new MessageRecord[]{});
@@ -57,6 +60,10 @@ public class OneTopicRearrangeProcessor extends Thread {
                 context.caculateLowesThread();
                 if (latestEventTime - context.getSlowestThreadEventTime() > context.getAllowMaxAHeadSeconds())
                     latch = new CountDownLatch(1);*/
+
+                //commit
+                Map<TopicPartition, OffsetAndMetadata>  maxOffset = recordList.get(recordList.size()-1).currentOffsets;
+                kafkaService.commit(maxOffset);
             }
         }
     }
