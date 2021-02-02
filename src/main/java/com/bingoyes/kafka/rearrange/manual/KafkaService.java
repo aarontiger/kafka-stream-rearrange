@@ -20,9 +20,11 @@ public class KafkaService {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaService.class);
 
-    private Map topicConfig;
+    private Map sourceTopicConfig;
+    private Map sinkTopicConfig;
 
-    private String topic;
+    private String sourceTopic;
+    private String sinkTopic;
 
 
     KafkaConsumer<String, String> consumer;
@@ -30,20 +32,21 @@ public class KafkaService {
 
     List<String> sourceTopicList = new ArrayList<>();
 
-    public KafkaService(Map topicConfig){
-        this.topicConfig = topicConfig;
+    public KafkaService(Map sourceTopicConfig,Map sinkTopicConfig){
+        this.sourceTopicConfig = sourceTopicConfig;
+        this.sinkTopicConfig = sinkTopicConfig;
         initConsumer();
         initProducer();
     }
 
     private void initConsumer(){
 
-        String uri = (String)topicConfig.get("uri");
-        boolean auth = (boolean)topicConfig.get("auth");
-        String user = (String)topicConfig.get("user");
-        String password = (String)topicConfig.get("password");
-        String groupId = (String)topicConfig.get("group_id");
-        this.topic = (String)topicConfig.get("topic");
+        String uri = (String) sourceTopicConfig.get("uri");
+        boolean auth = (boolean) sourceTopicConfig.get("auth");
+        String user = (String) sourceTopicConfig.get("user");
+        String password = (String) sourceTopicConfig.get("password");
+        String groupId = (String) sourceTopicConfig.get("group_id");
+        this.sourceTopic = (String) sourceTopicConfig.get("topic");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", uri);
@@ -67,23 +70,21 @@ public class KafkaService {
         }
 
         consumer = new KafkaConsumer<>(props);
-        consumer.subscribe(Arrays.asList(topic));
-
-
+        consumer.subscribe(Arrays.asList(sourceTopic));
     }
 
     private void initProducer(){
-        String uri = (String)topicConfig.get("uri");
-        boolean auth = (boolean)topicConfig.get("auth");
-        String password = (String)topicConfig.get("password");
-        String groupId = (String)topicConfig.get("group_id");
-        this.topic = (String)topicConfig.get("topic2");
-        String user = (String)topicConfig.get("user");
+        String uri = (String) sinkTopicConfig.get("uri");
+        boolean auth = (boolean) sinkTopicConfig.get("auth");
+        String password = (String) sinkTopicConfig.get("password");
+        String groupId = (String) sinkTopicConfig.get("group_id");
+        this.sinkTopic = (String) sinkTopicConfig.get("topic");
+        String user = (String) sinkTopicConfig.get("user");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", uri);
-        props.put("group.id", groupId);
-        props.put("enable.auto.commit", "false");
+        //props.put("group.id", groupId);
+        //props.put("enable.auto.commit", "false");
         props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
@@ -92,32 +93,10 @@ public class KafkaService {
             props.put(SaslConfigs.SASL_MECHANISM, "PLAIN");
             props.put("sasl.jaas.config",
                     "org.apache.kafka.common.security.plain.PlainLoginModule required username=\""
-                            + "admin" + "\" password=\"" + "admin" + "\";");
+                            + user + "\" password=\"" + password + "\";");
         }
 
         kafkaProducer = new KafkaProducer<>(props);
-    }
-    public List<MessageRecord> readMessage(){
-
-        List<ConsumerRecord<String, String>> list = new ArrayList<>();
-
-
-        List<MessageRecord> recordList = new ArrayList<>();
-
-        ConsumerRecords<String, String> records = consumer.poll(Duration.ofMillis(100));
-        for (ConsumerRecord<String, String> record : records) {
-            //System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
-
-            MessageRecord messageRecord = new MessageRecord();
-
-            JSONObject recordJson =JSON.parseObject(record.value());
-            messageRecord.setTimestamp(recordJson.getLong("timestamp"));
-            recordList.add(messageRecord);
-
-        }
-
-        //consumer.commitSync();
-        return  recordList;
     }
 
     public List<MessageRecord> readMessage(int runSecond,long maxRecordNum){
@@ -139,6 +118,22 @@ public class KafkaService {
 
                 JSONObject recordJson = JSON.parseObject(record.value());
                 messageRecord.setTimestamp(recordJson.getLong("timestamp"));
+                messageRecord.setDomainGroup(recordJson.getString("domainGroup"));
+                messageRecord.setRecordType(sourceTopic);
+                String recordId ="";
+                if("bingoyes-imsi".equals(sourceTopic)){
+                    recordId= recordJson.getString("imsi");
+                }else if("bingoyes-wifimac".equals(sourceTopic)){
+                    recordId= recordJson.getString("mac");
+                }else if("bingoyes-face".equals(sourceTopic)){
+                    recordId= recordJson.getString("label");
+                }else if("bingoyes-plate".equals(sourceTopic)){
+                    recordId= recordJson.getString("plate");
+                }else if("bingoyes-etc".equals(sourceTopic)){
+                    recordId= recordJson.getString("obuId");
+                }
+                messageRecord.setRecoredId(recordId);
+
                 Map<TopicPartition, OffsetAndMetadata> currentOffsets = new HashMap<>();
 
                 currentOffsets.put(new TopicPartition(record.topic(), record.partition()), new OffsetAndMetadata(record.offset(), "no metadata"));
@@ -165,28 +160,30 @@ public class KafkaService {
         for(MessageRecord record:recordList) {
 
             String recordJson =  JSON.toJSONString(record);
-            ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(topic,recordJson );
+            ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(sinkTopic,recordJson );
 
             //同步发送方式,get方法返回结果
             RecordMetadata metadata = null;
             try {
                 metadata = (RecordMetadata) kafkaProducer.send(producerRecord).get();
                 System.out.println("kafka output success:"+record.getTimestamp());
-                logger.info("commit consumer offesets");
+
                 //提交consumer
                 consumer.commitAsync(record.getCurrentOffsets(), new OffsetCommitCallback() {
                     @Override
                     public void onComplete(Map<TopicPartition, OffsetAndMetadata> offsets, Exception exception) {
                         if (null != exception){
-                            logger.info("发送消息后提交consumer失败");
+                            logger.info("commit consumer offset 失败");
                             System.out.println(String.format("==== Commit failed for offsets %s, error:%s ====", offsets, exception.toString()));
                         }else {
-                            logger.info("commit consumer offesets");
-                            Map<TopicPartition, OffsetAndMetadata> currentOffsets = record.getCurrentOffsets();
-                            Set<TopicPartition> keys = currentOffsets.keySet();
-                            for (TopicPartition topicPartition : keys) {
-                                logger.info("commit conumer partition:" + topicPartition.partition() + ",topic:" + topicPartition.topic() + "offset:" + currentOffsets.get(topicPartition).offset());
-                            }
+                            logger.info("commit consumer offset 成功");
+
+                        }
+                        logger.info("offset list:");
+                        Map<TopicPartition, OffsetAndMetadata> currentOffsets = record.getCurrentOffsets();
+                        Set<TopicPartition> keys = currentOffsets.keySet();
+                        for (TopicPartition topicPartition : keys) {
+                            logger.info("partition:" + topicPartition.partition() + ",topic:" + topicPartition.topic() + "offset:" + currentOffsets.get(topicPartition).offset());
                         }
                     }
                 });
@@ -201,7 +198,7 @@ public class KafkaService {
 
     }
 
-    public String getTopic() {
-        return topic;
+    public String getSourceTopic() {
+        return sourceTopic;
     }
 }

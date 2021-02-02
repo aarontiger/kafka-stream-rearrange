@@ -1,23 +1,12 @@
 package com.bingoyes.kafka.rearrange.manual.util;
 
-import com.bingoyes.kafka.rearrange.manual.MessageRecord;
-import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
-import org.apache.kafka.clients.consumer.ConsumerRecords;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
-import org.apache.kafka.clients.producer.KafkaProducer;
-import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.kafka.clients.producer.RecordMetadata;
-import org.apache.kafka.common.config.SaslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.yaml.snakeyaml.Yaml;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.time.Duration;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
 
 public class KafkaConfigUtil {
 
@@ -26,18 +15,20 @@ public class KafkaConfigUtil {
     private final static String portal_file = "/opt/conf/portal.yml";
     private final static String kafka_file = "/opt/conf/kafka-stream.yml";
 
-    String uri;
+/*    String uri;
     boolean auth;
     String user;
-    String password;
+    String password;*/
 
-    List<Map> topicConfigList = new ArrayList<>();
+    List<Map> sourceTopicConfigList = new ArrayList<>();
+
+    Map<String,Object> sinkConfig = new HashMap<>();
 
     public KafkaConfigUtil(){
         try {
             //readFormGlobalMain();
             //this.topicConfigList = readFormDaeGraph();
-            this.topicConfigList = readKafkaConfigFromFile();
+           readKafkaConfigFromFile();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -45,12 +36,16 @@ public class KafkaConfigUtil {
 
     public List<Map> readKafkaConfigFromFile(){
         Yaml yaml =new Yaml();
+        String uri=null;
+        boolean auth = false;
+        String user =null;
+        String password =null;
         try{
             File file = new File(kafka_file);
 
             Map<String, Map<String, Map<String, Map>>> contentProperties = yaml.load(new FileInputStream(file));
 
-            Map mongo = (Map) contentProperties.get("kafka");
+            Map mongo = (Map) contentProperties.get("kafkasource");
             List<String> uriList = (List<String>)mongo.get("uri");
             if(uriList!=null & uriList.size()>0)
                 uri = uriList.get(0);
@@ -62,21 +57,53 @@ public class KafkaConfigUtil {
                 password = (String) security.get("pwd");
             }
 
-            Map<String,Map> kafkasource = (Map) contentProperties.get("kafkasource");
-            Set<String> keySet = kafkasource.keySet();
-            List<Map>  valueList = new ArrayList<>(kafkasource.values());
-            Map[] valueArray = kafkasource.values().toArray(new Map[]{});
+            Map<String,Map> kafkasourceTopics = (Map) contentProperties.get("kafkasource-topics");
+            Set<String> keySet = kafkasourceTopics.keySet();
+            List<Map>  valueList = new ArrayList<>(kafkasourceTopics.values());
+            Map[] valueArray = kafkasourceTopics.values().toArray(new Map[]{});
 
             Map activeKafkaSource = new HashMap();
 
             //去掉未激活的topic
             for(String key:keySet){
-                Map topicConf = kafkasource.get(key);
+                Map topicConf = kafkasourceTopics.get(key);
                 boolean active = (boolean)topicConf.get("active");
-                if(active) activeKafkaSource.put(key,kafkasource.get(key));
+
+                if(active){
+                    Map value = kafkasourceTopics.get(key);
+                    value.put("uri",uri);
+                    value.put("auth",auth);
+                    value.put("user",user);
+                    value.put("password",password);
+                    value.put("uri",uri);
+                    activeKafkaSource.put(key,value);
+                }
             }
 
-            return new ArrayList<Map>(activeKafkaSource.values());
+            this.sourceTopicConfigList =new ArrayList<Map>(activeKafkaSource.values());
+
+            //输出kafka
+            String uri2=null;
+            boolean auth2 = false;
+            String user2 =null;
+            String password2 =null;
+            Map mongo2 = (Map) contentProperties.get("kafkasink");
+            List<String> uriList2 = (List<String>)mongo2.get("uri");
+            if(uriList!=null & uriList.size()>0)
+                uri2 = uriList2.get(0);
+
+            Map security2 = (Map)mongo.get("security");
+            auth2 = (Boolean) security.get("auth");
+            if(auth2) {
+                user2 = (String) security.get("user");
+                password2 = (String) security.get("pwd");
+            }
+
+            sinkConfig.put("uri",uri2);
+            sinkConfig.put("auth",auth2);
+            sinkConfig.put("user",user2);
+            sinkConfig.put("password",password2);
+
 
         }catch(Exception e){
             e.printStackTrace();
@@ -112,45 +139,18 @@ public class KafkaConfigUtil {
 
     }
 
-   
 
-    public String getUri() {
-        return uri;
+
+
+    public List<Map> getSourceTopicConfigList() {
+        return sourceTopicConfigList;
     }
 
-    public void setUri(String uri) {
-        this.uri = uri;
+    public void setSourceTopicConfigList(List<Map> sourceTopicConfigList) {
+        this.sourceTopicConfigList = sourceTopicConfigList;
     }
 
-    public boolean isAuth() {
-        return auth;
-    }
-
-    public void setAuth(boolean auth) {
-        this.auth = auth;
-    }
-
-    public String getUser() {
-        return user;
-    }
-
-    public void setUser(String user) {
-        this.user = user;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public List<Map> getTopicConfigList() {
-        return topicConfigList;
-    }
-
-    public void setTopicConfigList(List<Map> topicConfigList) {
-        this.topicConfigList = topicConfigList;
+    public Map<String, Object> getSinkConfig() {
+        return sinkConfig;
     }
 }

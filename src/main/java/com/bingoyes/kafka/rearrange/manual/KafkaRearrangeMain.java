@@ -36,16 +36,16 @@ public class KafkaRearrangeMain {
 
         KafkaConfigUtil kafkaConfigUtil = new KafkaConfigUtil();
 
-        List<Map> topicConfigList = kafkaConfigUtil.getTopicConfigList();
-
+        List<Map> topicConfigList = kafkaConfigUtil.getSourceTopicConfigList();
+        Map sinkConfig = kafkaConfigUtil.getSinkConfig();
         int index = 0; //线程索引编号，从0开始
         for (Map topicConfig : topicConfigList) {
-            topicConfig.put("uri",kafkaConfigUtil.getUri());
-            topicConfig.put("auth",kafkaConfigUtil.isAuth());
-            topicConfig.put("user",kafkaConfigUtil.getUser());
-            topicConfig.put("password",kafkaConfigUtil.getPassword());
-            topicConfig.put("topic2",topicConfig.get("topic").toString()+ "_rearranged");
-            KafkaService kafkaService = new KafkaService(topicConfig);
+//            topicConfig.put("uri",kafkaConfigUtil.getUri());
+//            topicConfig.put("auth",kafkaConfigUtil.isAuth());
+//            topicConfig.put("user",kafkaConfigUtil.getUser());
+//            topicConfig.put("password",kafkaConfigUtil.getPassword());
+            sinkConfig.put("topic",topicConfig.get("topic").toString()+ "_rearranged");
+            KafkaService kafkaService = new KafkaService(topicConfig,sinkConfig);
 
 
             OneTopicRearrangeProcessor thread = new OneTopicRearrangeProcessor(index++, this, kafkaService);
