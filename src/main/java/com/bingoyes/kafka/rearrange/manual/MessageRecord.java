@@ -3,7 +3,6 @@ package com.bingoyes.kafka.rearrange.manual;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;

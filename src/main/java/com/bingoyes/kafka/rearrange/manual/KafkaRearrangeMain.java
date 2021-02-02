@@ -21,14 +21,14 @@ public class KafkaRearrangeMain {
     //每次最长取数据时间,单位秒,默认取5分钟
     public final static int MAX_FETCH_TIME_DURATION = 60;
     //每次最长取记录数
-    public final static int MAX_FETCH_RECORDS = 100;
+    public final static int MAX_FETCH_RECORDS = 5;
 
+    private boolean isEnableFence = true;
     //允许最慢topic和最慢topic之间的最大差值
-    private long allowMaxAHeadSeconds=400;
-
-    //////
-    private long slowestThreadEventTime =0;
-
+    //private long allowMaxAHeadSeconds=400;
+    //private long allowMaxAHeadSeconds=24*60*60;
+    private long allowMaxAHeadSeconds=10*60*60;
+    private long slowestThreadEventTime =-2;
     //最慢topic线程Id
     private long slowestThreadIndex = -1;
 
@@ -47,18 +47,24 @@ public class KafkaRearrangeMain {
             sinkConfig.put("topic",topicConfig.get("topic").toString()+ "_rearranged");
             KafkaService kafkaService = new KafkaService(topicConfig,sinkConfig);
 
-
             OneTopicRearrangeProcessor thread = new OneTopicRearrangeProcessor(index++, this, kafkaService);
             threadList.add(thread);
             thread.start();
         }
-
+        if(isEnableFence) {
+            new ProcessorResumeThread().start();
+        }
     }
 
     public void caculateLowesThread(){
+        logger.info("renew slowest thread info:");
+        logger.info("old slowest thread:"+slowestThreadIndex);
+        logger.info("old slowest thread eventTime:"+slowestThreadEventTime);
         OneTopicRearrangeProcessor thread = this.getSlowestThread();
         this.slowestThreadIndex = thread.getThreadIndex();
         this.slowestThreadEventTime=thread.getLatestEventTime();
+        logger.info("new slowest thread:"+slowestThreadIndex);
+        logger.info("new slowest thread eventTime:"+slowestThreadEventTime);
     }
 
     public OneTopicRearrangeProcessor getSlowestThread(){
@@ -75,21 +81,36 @@ public class KafkaRearrangeMain {
     }
 
     //重启数据输入进程（由于该进程的处理的window过去超前，数据输入进程被暂停
-    /*class ProcessorResumeThread extends Thread{
+    class ProcessorResumeThread extends Thread{
 
         public void run(){
             while(true){
-                System.out.println("InputProcessorResumeThread:");
+                logger.info("ProcessorResumeThread=====================:");
 
+                boolean isAllThreadSuspend = true;
+                //判断是否所有线程都挂起
                 for(OneTopicRearrangeProcessor processor:threadList){
-                    //如果窗口数差值在允许范围内，则重新开始输入输入
-                    if(processor.getLatestEventTime()-slowestThreadEventTime<allowMaxAHeadSeconds){
-                        if(processor.getLatch().getCount()>0) {
-                            processor.getLatch().countDown();
-                            System.out.println("resume processor:" +processor.getThreadIndex());
+                    if(processor.getFenceLatch().getCount()==0){
+                        isAllThreadSuspend = false;
+                        break;
+                    }
+                }
+                //让最慢的线程运行
+                if(isAllThreadSuspend) {
+                    OneTopicRearrangeProcessor slowestThread = getSlowestThread();
+                    slowestThread.clearFenceLatch();
 
+                    logger.info("all thread suspends,let one resume:" + slowestThread.getThreadIndex());
+
+                }else {
+                    for (OneTopicRearrangeProcessor processor : threadList) {
+                        //如果窗口数差值在允许范围内，则重新开始输入输入
+                        if (processor.getLatestEventTime() - slowestThreadEventTime < allowMaxAHeadSeconds) {
+                            if (processor.getFenceLatch().getCount() > 0) {
+                                processor.getFenceLatch().countDown();
+                               logger.info("resume thread,index:" + processor.getThreadIndex());
+                            }
                         }
-
                     }
                 }
 
@@ -101,7 +122,6 @@ public class KafkaRearrangeMain {
             }
         }
     }
-*/
 
 
     public long getSlowestThreadIndex() {
@@ -119,6 +139,10 @@ public class KafkaRearrangeMain {
 
     public long getAllowMaxAHeadSeconds() {
         return allowMaxAHeadSeconds;
+    }
+
+    public boolean isEnableFence() {
+        return isEnableFence;
     }
 
     public static void  main(String[] args){

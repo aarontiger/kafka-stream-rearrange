@@ -12,6 +12,7 @@ import org.apache.kafka.common.config.SaslConfigs;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
@@ -31,6 +32,8 @@ public class KafkaService {
     KafkaProducer kafkaProducer;
 
     List<String> sourceTopicList = new ArrayList<>();
+
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public KafkaService(Map sourceTopicConfig,Map sinkTopicConfig){
         this.sourceTopicConfig = sourceTopicConfig;
@@ -54,9 +57,9 @@ public class KafkaService {
         props.put("enable.auto.commit", "false");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        //props.put("auto.offset.reset", "latest");
+        props.put("auto.offset.reset", "latest");
         //props.put("auto.offset.reset", "earliest");
-        props.put("max.poll.records", 100);
+        props.put("max.poll.records", 10000);
         props.put("auto.commit.interval.ms", 1000*600);
 
 
@@ -196,14 +199,26 @@ public class KafkaService {
 
         for(MessageRecord record:recordList) {
 
-            String recordJson =  JSON.toJSONString(record);
-            ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(sinkTopic,recordJson );
+            JSONObject recordJson =  (JSONObject)JSON.toJSON(record);
+            if("bingoyes-imsi".equals(sourceTopic)){
+                recordJson.put("imsi",record.getRecoredId());
+            }else if("bingoyes-wifimac".equals(sourceTopic)){
+                recordJson.put("mac",record.getRecoredId());
+            }else if("bingoyes-face".equals(sourceTopic)){
+                recordJson.put("label",record.getRecoredId());
+            }else if("bingoyes-plate".equals(sourceTopic)){
+                recordJson.put("plate",record.getRecoredId());
+            }else if("bingoyes-etc".equals(sourceTopic)){
+                recordJson.put("obuId",record.getRecoredId());
+            }
+
+            ProducerRecord<String, String> producerRecord = new ProducerRecord<String, String>(sinkTopic,recordJson.toJSONString() );
 
             //同步发送方式,get方法返回结果
             RecordMetadata metadata = null;
             try {
                 metadata = (RecordMetadata) kafkaProducer.send(producerRecord).get();
-                System.out.println("kafka output success:"+record.getTimestamp());
+                System.out.println("kafka output success,topic:"+sinkTopic+",timestamp:"+dateFormat.format(new Date(record.getTimestamp()*1000)));
 
 
 
@@ -212,7 +227,7 @@ public class KafkaService {
             } catch (ExecutionException e) {
                 e.printStackTrace();
             }
-            System.out.println("发送kafka消息成功" + metadata);
+
         }
 
     }
