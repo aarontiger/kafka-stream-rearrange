@@ -5,5 +5,5 @@ logging:
   config: classpath:logback.xml
   level:
     root: info
-    #org.apache.kafka: debug
-    #org.springframework.web: trace
+    org.apache.kafka: error
+    org.springframework: error

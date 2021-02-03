@@ -1,4 +1,4 @@
-package com.bingoyes.kafka.rearrange.manual.util;
+package com.bingoyes.kafka.rearrange.util;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

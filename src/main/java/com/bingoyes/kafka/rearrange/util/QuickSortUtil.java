@@ -1,6 +1,6 @@
-package com.bingoyes.kafka.rearrange.manual.util;
+package com.bingoyes.kafka.rearrange.util;
 
-import com.bingoyes.kafka.rearrange.manual.MessageRecord;
+import com.bingoyes.kafka.rearrange.MessageRecord;
 
 import java.util.Arrays;
 

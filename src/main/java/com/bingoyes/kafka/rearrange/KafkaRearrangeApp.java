@@ -1,4 +1,4 @@
-package com.bingoyes.kafka.rearrange.manual;
+package com.bingoyes.kafka.rearrange;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +29,5 @@ public class KafkaRearrangeApp implements CommandLineRunner
     public void run(String... args) throws Exception {
 
         kafkaRearrangeMain.startAllThread();
-        logger.info("hello");
     }
 }

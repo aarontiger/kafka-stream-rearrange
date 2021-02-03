@@ -1,6 +1,6 @@
-package com.bingoyes.kafka.rearrange.manual;
+package com.bingoyes.kafka.rearrange;
 
-import com.bingoyes.kafka.rearrange.manual.util.KafkaConfigUtil;
+import com.bingoyes.kafka.rearrange.util.KafkaConfigUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -14,14 +14,12 @@ public class KafkaRearrangeMain {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaRearrangeMain.class);
 
-    private final static String portal_file = "/opt/conf/portal.yml";
-
     private List<OneTopicRearrangeProcessor> threadList = new ArrayList<>();
 
     //每次最长取数据时间,单位秒,默认取5分钟
     public final static int MAX_FETCH_TIME_DURATION = 60;
     //每次最长取记录数
-    public final static int MAX_FETCH_RECORDS = 5;
+    public final static int MAX_FETCH_RECORDS = 10000;
 
     private boolean isEnableFence = true;
     //允许最慢topic和最慢topic之间的最大差值
@@ -44,7 +42,7 @@ public class KafkaRearrangeMain {
 //            topicConfig.put("auth",kafkaConfigUtil.isAuth());
 //            topicConfig.put("user",kafkaConfigUtil.getUser());
 //            topicConfig.put("password",kafkaConfigUtil.getPassword());
-            sinkConfig.put("topic",topicConfig.get("topic").toString()+ "_rearranged");
+            sinkConfig.put("topic",topicConfig.get("sink_topic").toString());
             KafkaService kafkaService = new KafkaService(topicConfig,sinkConfig);
 
             OneTopicRearrangeProcessor thread = new OneTopicRearrangeProcessor(index++, this, kafkaService);
@@ -100,7 +98,7 @@ public class KafkaRearrangeMain {
                     OneTopicRearrangeProcessor slowestThread = getSlowestThread();
                     slowestThread.clearFenceLatch();
 
-                    logger.info("all thread suspends,let one resume:" + slowestThread.getThreadIndex());
+                    logger.info("all thread suspends,let one resume:" + slowestThread.getKafkaService().getSourceTopic());
 
                 }else {
                     for (OneTopicRearrangeProcessor processor : threadList) {
@@ -108,7 +106,7 @@ public class KafkaRearrangeMain {
                         if (processor.getLatestEventTime() - slowestThreadEventTime < allowMaxAHeadSeconds) {
                             if (processor.getFenceLatch().getCount() > 0) {
                                 processor.getFenceLatch().countDown();
-                               logger.info("resume thread,index:" + processor.getThreadIndex());
+                               logger.info("resume thread,topic:" + processor.getKafkaService().getSourceTopic());
                             }
                         }
                     }
@@ -143,10 +141,6 @@ public class KafkaRearrangeMain {
 
     public boolean isEnableFence() {
         return isEnableFence;
-    }
-
-    public static void  main(String[] args){
-        new KafkaRearrangeMain().startAllThread();
     }
 }
 

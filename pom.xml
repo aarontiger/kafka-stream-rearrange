@@ -28,7 +28,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.bingoyes.kafka.rearrange.manual.KafkaRearrangeApp</mainClass>
+                    <mainClass>com.bingoyes.kafka.rearrange.KafkaRearrangeApp</mainClass>
                 </configuration>
                 <goals>
                     <goal>repackage</goal>
@@ -43,7 +43,7 @@
 
                     <finalName>kafka_rearrange_all</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
-                    <mainClass>com.bingoyes.kafka.rearrange.manual.KafkaRearrangeApp</mainClass>
+                    <mainClass>com.bingoyes.kafka.rearrange.KafkaRearrangeApp</mainClass>
                 </configuration>
                 <executions>
                     <execution>
@@ -58,7 +58,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
-                    <mainClass>com.bingoyes.kafka.rearrange.manual.KafkaRearrangeApp</mainClass>
+                    <mainClass>com.bingoyes.kafka.rearrange.KafkaRearrangeApp</mainClass>
                 </configuration>
             </plugin>
 

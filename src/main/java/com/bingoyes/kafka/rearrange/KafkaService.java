@@ -1,4 +1,4 @@
-package com.bingoyes.kafka.rearrange.manual;
+package com.bingoyes.kafka.rearrange;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
@@ -50,6 +50,7 @@ public class KafkaService {
         String password = (String) sourceTopicConfig.get("password");
         String groupId = (String) sourceTopicConfig.get("group_id");
         this.sourceTopic = (String) sourceTopicConfig.get("topic");
+        boolean startEarliest =(boolean)sourceTopicConfig.get("start_earliest");
 
         Properties props = new Properties();
         props.put("bootstrap.servers", uri);
@@ -57,9 +58,13 @@ public class KafkaService {
         props.put("enable.auto.commit", "false");
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-        props.put("auto.offset.reset", "latest");
-        //props.put("auto.offset.reset", "earliest");
-        props.put("max.poll.records", 10000);
+
+        if(startEarliest) {
+            props.put("auto.offset.reset", "earliest");
+        }else{
+            props.put("auto.offset.reset", "latest");
+        }
+        props.put("max.poll.records", KafkaRearrangeMain.MAX_FETCH_RECORDS);
         props.put("auto.commit.interval.ms", 1000*600);
 
 
@@ -100,6 +105,10 @@ public class KafkaService {
         }
 
         kafkaProducer = new KafkaProducer<>(props);
+    }
+
+    public List<MessageRecord> readMessage(){
+        return readMessage(KafkaRearrangeMain.MAX_FETCH_TIME_DURATION,KafkaRearrangeMain.MAX_FETCH_RECORDS);
     }
 
     public List<MessageRecord> readMessage(int runSecond,long maxRecordNum){
@@ -196,7 +205,6 @@ public class KafkaService {
     public void sendMessage(MessageRecord[] recordList){
 
 
-
         for(MessageRecord record:recordList) {
 
             JSONObject recordJson =  (JSONObject)JSON.toJSON(record);
@@ -218,9 +226,7 @@ public class KafkaService {
             RecordMetadata metadata = null;
             try {
                 metadata = (RecordMetadata) kafkaProducer.send(producerRecord).get();
-                System.out.println("kafka output success,topic:"+sinkTopic+",timestamp:"+dateFormat.format(new Date(record.getTimestamp()*1000)));
-
-
+                //logger.info("kafka output success,topic:"+sinkTopic+",timestamp:"+dateFormat.format(new Date(record.getTimestamp()*1000)));
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -255,9 +261,17 @@ public class KafkaService {
         });*/
         this.consumer.commitSync(offsets);
         logger.info("commit success");
+        Set<TopicPartition> keys = offsets.keySet();
+        for (TopicPartition topicPartition : keys) {
+            logger.info("commit info,partition:" + topicPartition.partition() + ",topic:" + topicPartition.topic() + ",offset:" + offsets.get(topicPartition).offset());
+        }
     }
 
     public String getSourceTopic() {
         return sourceTopic;
+    }
+
+    public String getSinkTopic() {
+        return sinkTopic;
     }
 }

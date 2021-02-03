@@ -1,6 +1,6 @@
-package com.bingoyes.kafka.rearrange.manual;
+package com.bingoyes.kafka.rearrange;
 
-import com.bingoyes.kafka.rearrange.manual.util.QuickSortUtil;
+import com.bingoyes.kafka.rearrange.util.QuickSortUtil;
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
@@ -31,6 +31,10 @@ public class OneTopicRearrangeProcessor extends Thread {
         this.kafkaService = kafkaService;
     }
 
+    public KafkaService getKafkaService() {
+        return kafkaService;
+    }
+
     @Override
     public void run(){
 
@@ -43,20 +47,20 @@ public class OneTopicRearrangeProcessor extends Thread {
             }
 
 
-            List<MessageRecord> recordList = kafkaService.readMessage(KafkaRearrangeMain.MAX_FETCH_TIME_DURATION,KafkaRearrangeMain.MAX_FETCH_RECORDS);
-            System.out.println("thread:"+threadIndex+",get record size:"+recordList.size());
+            List<MessageRecord> recordList = kafkaService.readMessage();
+            logger.info("read record,topic:"+kafkaService.getSourceTopic()+", total: "+recordList.size());
 
             if(recordList.size()>0) {
 
                 MessageRecord[] listArray = recordList.toArray(new MessageRecord[]{});
 
                 QuickSortUtil.quickSort(listArray);
-                logger.info("thread:"+threadIndex+",sort success");
+                logger.info("sort success,topic:"+kafkaService.getSourceTopic());
                 for(MessageRecord messageRecord:listArray){
-                    logger.info("topic:"+kafkaService.getSourceTopic()+"timestamp:"+ dateFormat.format(new Date(messageRecord.getTimestamp()*1000)));
+                    //logger.info("sorted record,topic:"+kafkaService.getSourceTopic()+",timestamp:"+ dateFormat.format(new Date(messageRecord.getTimestamp()*1000)));
                 }
                 kafkaService.sendMessage(listArray);
-                logger.info("thread:"+threadIndex+",send message success");
+                logger.info("send message success,topic:"+kafkaService.getSourceTopic()+",total:"+listArray.length);
 
                 //commit
                 Map<TopicPartition, OffsetAndMetadata>  maxOffset = recordList.get(recordList.size()-1).currentOffsets;
@@ -66,14 +70,14 @@ public class OneTopicRearrangeProcessor extends Thread {
                 if(context.isEnableFence()) {
 
                     this.latestEventTime = listArray[listArray.length - 1].getTimestamp();
-                    logger.info("update lastEventTime,thread:" + threadIndex + ",timestamp:"+dateFormat.format(new Date(latestEventTime*1000)));
+                    logger.info("update lastEventTime,topic:" + kafkaService.getSourceTopic() + ",timestamp:"+dateFormat.format(new Date(latestEventTime*1000)));
                     long slowestThreadEventTime = context.getSlowestThreadEventTime();
 
                     //slowesThreadEventTime ==-2 表示 第一次执行下面的代码，最慢线程还没有初始值
                     if (slowestThreadEventTime!=-2 && latestEventTime - slowestThreadEventTime > context.getAllowMaxAHeadSeconds()) {
 
                         setupFenceLatch();
-                        logger.info("thread:" + threadIndex + ",too quick and suspend");
+                        logger.info("too quick and suspend,topic:" + kafkaService.getSourceTopic() );
                     }
 
                     context.caculateLowesThread();

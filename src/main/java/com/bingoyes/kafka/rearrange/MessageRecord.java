@@ -1,8 +1,10 @@
-package com.bingoyes.kafka.rearrange.manual;
+package com.bingoyes.kafka.rearrange;
 
 import org.apache.kafka.clients.consumer.OffsetAndMetadata;
 import org.apache.kafka.common.TopicPartition;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.Map;
@@ -66,5 +68,10 @@ public class MessageRecord {
 
     public void setCurrentOffsets(Map<TopicPartition, OffsetAndMetadata> currentOffsets) {
         this.currentOffsets = currentOffsets;
+    }
+
+    public String getTimestampStr(){
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        return dateFormat.format(new Date(timestamp*1000));
     }
 }

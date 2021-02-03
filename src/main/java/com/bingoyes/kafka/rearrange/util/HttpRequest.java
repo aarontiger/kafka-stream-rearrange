@@ -1,4 +1,4 @@
-package com.bingoyes.kafka.rearrange.manual.util;
+package com.bingoyes.kafka.rearrange.util;
 
 import java.io.BufferedReader;
 import java.io.IOException;
