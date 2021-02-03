@@ -111,7 +111,7 @@ public class KafkaService {
         return readMessage(KafkaRearrangeMain.MAX_FETCH_TIME_DURATION,KafkaRearrangeMain.MAX_FETCH_RECORDS);
     }
 
-    public List<MessageRecord> readMessage(int runSecond,long maxRecordNum){
+    public List<MessageRecord> readMessage(long runSecond,long maxRecordNum){
 
         long startTime = new Date().getTime()/1000;
 

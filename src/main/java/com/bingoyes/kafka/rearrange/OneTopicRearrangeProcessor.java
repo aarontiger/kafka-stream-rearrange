@@ -46,8 +46,8 @@ public class OneTopicRearrangeProcessor extends Thread {
                 e.printStackTrace();
             }
 
-
-            List<MessageRecord> recordList = kafkaService.readMessage();
+            //List<MessageRecord> recordList = kafkaService.readMessage();
+            List<MessageRecord> recordList = kafkaService.readMessage(context.getMaxFetchTimeDuration(),context.getMaxFetchRecords());
             logger.info("read record,topic:"+kafkaService.getSourceTopic()+", total: "+recordList.size());
 
             if(recordList.size()>0) {
@@ -74,7 +74,7 @@ public class OneTopicRearrangeProcessor extends Thread {
                     long slowestThreadEventTime = context.getSlowestThreadEventTime();
 
                     //slowesThreadEventTime ==-2 表示 第一次执行下面的代码，最慢线程还没有初始值
-                    if (slowestThreadEventTime!=-2 && latestEventTime - slowestThreadEventTime > context.getAllowMaxAHeadSeconds()) {
+                    if (slowestThreadEventTime!=-2 && latestEventTime - slowestThreadEventTime > context.getAllowMaxAHead()) {
 
                         setupFenceLatch();
                         logger.info("too quick and suspend,topic:" + kafkaService.getSourceTopic() );
