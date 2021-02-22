@@ -66,8 +66,7 @@ public class KafkaService {
         }
         props.put("max.poll.records", KafkaRearrangeMain.MAX_FETCH_RECORDS);
         props.put("auto.commit.interval.ms", 1000*600);
-
-
+        props.put("max.poll.interval.ms", 1000*600);
 
         if(auth) {
             props.put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT");
@@ -227,6 +226,7 @@ public class KafkaService {
             try {
                 metadata = (RecordMetadata) kafkaProducer.send(producerRecord).get();
                 //logger.info("kafka output success,topic:"+sinkTopic+",timestamp:"+dateFormat.format(new Date(record.getTimestamp()*1000)));
+
 
             } catch (InterruptedException e) {
                 e.printStackTrace();
