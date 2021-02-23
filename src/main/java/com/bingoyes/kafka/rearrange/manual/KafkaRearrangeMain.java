@@ -55,7 +55,7 @@ public class KafkaRearrangeMain {
             thread.start();
         }
 
-        //new InputProcessorResumeThread().start();
+        new InputProcessorResumeThread().start();
 
     }
 
@@ -84,14 +84,14 @@ public class KafkaRearrangeMain {
 
         public void run(){
             while(true){
-                System.out.println("InputProcessorResumeThread:");
+                logger.info("InputProcessorResumeThread:");
 
                 for(TopicInputProcessor processor:threadList){
                     //如果窗口数差值在允许范围内，则重新开始输入输入
                     if(processor.getLatestProcessedWindowId()-getSlowestThreadLatestWindowId()/windowSize<allowMaxAHeadWindowNum){
                         if(processor.getInputLatch().getCount()>0) {
                             processor.getInputLatch().countDown();
-                            System.out.println("resume processor:" +processor.getThreadIndex());
+                            logger.info("resume processor:" +processor.getThreadIndex());
 
                         }
 

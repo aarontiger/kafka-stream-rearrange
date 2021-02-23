@@ -60,7 +60,7 @@ public class ProcessorWindow {
     /**
      * 该窗口的排序并输出
      */
-    public void triggerSortAndOutput(){
+    public void  triggerSortAndOutput(){
         System.out.println("kafka output begin:"+recordList.size());
         MessageRecord[] list = getOrderedRecordList(this.recordList);
         KafkaSinkService kafkaSinkService = context.getKafkaSinkService();

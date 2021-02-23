@@ -147,12 +147,12 @@ public class TopicInputProcessor extends Thread {
                     //todo 线程之间的相差窗口数超出允许范围，说明本线程取数据和出处数据都快
                    if(watermark-maxOutOfOrderness>= processorWindow.getEndTime()){
                        //lowestWindowId==0标识第一次进入该分支代码
-                       /*if(lowestWindowId!=0 && aheadWindowNum>context.getAllowMaxAHeadWindowNum()) {
+                       if(lowestWindowId!=0 && aheadWindowNum>context.getAllowMaxAHeadWindowNum()) {
                            System.out.println("thread:"+threadIndex+",not meets range in AllowMaxAHeadWindowNum!!!!!!!!!!!!!!!!!!!!!!!!:");
                            //暂停输入输入
                            pauseInputProcessor();
                            //if(watermark>= processorWindow.getEndTime() && aheadWindowNum<=context.getAllowMaxAHeadWindowNum()){
-                       }else{*/
+                       }else{
 
                             //线程之间的相差窗口数在允许范围内
                             System.out.println("thread:"+threadIndex+",meets range in AllowMaxAHeadWindowNum==========================:");
@@ -176,7 +176,7 @@ public class TopicInputProcessor extends Thread {
 
                             //删除处理完成的widow
                             windowHash.remove(processorWindow.getStartTime());
-                       /* }*/
+                        }
                     }
                 }
 
