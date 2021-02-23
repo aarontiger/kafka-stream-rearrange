@@ -56,7 +56,7 @@ public class KafkaSourceService {
         props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
         //props.put("auto.offset.reset", "latest");
-        //props.put("auto.offset.reset", "earliest");
+        props.put("auto.offset.reset", "earliest");
         props.put("max.poll.records", 50);
         props.put("auto.commit.interval.ms", 1000*600);
 

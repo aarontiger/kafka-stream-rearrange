@@ -3,11 +3,19 @@ package com.bingoyes.kafka.rearrange.manual;
 import com.bingoyes.kafka.rearrange.manual.util.KafkaConfigUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Component
+@Configuration
+@PropertySource(value = {"file:/opt/conf/kafka-stream.yml"})
+@ConfigurationProperties(prefix = "kafkasource")
 public class KafkaRearrangeMain {
 
     private static Logger logger = LoggerFactory.getLogger(KafkaRearrangeMain.class);
@@ -39,7 +47,7 @@ public class KafkaRearrangeMain {
             topicConfig.put("password",kafkaConfigUtil.getPassword());
 
             KafkaSourceService kafkaSourceService = new KafkaSourceService(topicConfig);
-            topicConfig.put("topic2",topicConfig.get("topic").toString()+ "_rearranged");
+            topicConfig.put("topic2",topicConfig.get("topic").toString()+ "_rearranged0223B");
             KafkaSinkService kafkaSinkService = new KafkaSinkService(topicConfig);
 
             TopicInputProcessor thread = new TopicInputProcessor(index++, this, kafkaSourceService, kafkaSinkService);
@@ -47,7 +55,7 @@ public class KafkaRearrangeMain {
             thread.start();
         }
 
-        new InputProcessorResumeThread().start();
+        //new InputProcessorResumeThread().start();
 
     }
 

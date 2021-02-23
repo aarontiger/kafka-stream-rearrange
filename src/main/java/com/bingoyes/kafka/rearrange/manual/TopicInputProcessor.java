@@ -1,15 +1,20 @@
 package com.bingoyes.kafka.rearrange.manual;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.CountDownLatch;
 
 public class TopicInputProcessor extends Thread {
+
+    private static Logger logger = LoggerFactory.getLogger(TopicInputProcessor.class);
     private int threadIndex;
 
     private KafkaRearrangeMain context;
     private long watermark;  //水位线，单位秒
 
-    private long maxOutOfOrderness = 0; //单位秒
+    private long maxOutOfOrderness = 500; //单位秒
 
     private Map<Long, ProcessorWindow> windowHash = new HashMap<>();
 
@@ -86,7 +91,7 @@ public class TopicInputProcessor extends Thread {
             latestWindowId = processorWindow.getStartTime();
             windowHash.put(windowsStart, processorWindow);
         }else{
-            System.out.println("thread:"+threadIndex+",get exist window:"+processorWindow.getStartTime());
+            logger.info("thread:"+threadIndex+",get exist window:"+processorWindow.getStartTime());
         }
 
         processorWindow.addRecord(messageRecord);
@@ -142,12 +147,12 @@ public class TopicInputProcessor extends Thread {
                     //todo 线程之间的相差窗口数超出允许范围，说明本线程取数据和出处数据都快
                    if(watermark-maxOutOfOrderness>= processorWindow.getEndTime()){
                        //lowestWindowId==0标识第一次进入该分支代码
-                       if(lowestWindowId!=0 && aheadWindowNum>context.getAllowMaxAHeadWindowNum()) {
+                       /*if(lowestWindowId!=0 && aheadWindowNum>context.getAllowMaxAHeadWindowNum()) {
                            System.out.println("thread:"+threadIndex+",not meets range in AllowMaxAHeadWindowNum!!!!!!!!!!!!!!!!!!!!!!!!:");
                            //暂停输入输入
                            pauseInputProcessor();
                            //if(watermark>= processorWindow.getEndTime() && aheadWindowNum<=context.getAllowMaxAHeadWindowNum()){
-                       }else{
+                       }else{*/
 
                             //线程之间的相差窗口数在允许范围内
                             System.out.println("thread:"+threadIndex+",meets range in AllowMaxAHeadWindowNum==========================:");
@@ -171,7 +176,7 @@ public class TopicInputProcessor extends Thread {
 
                             //删除处理完成的widow
                             windowHash.remove(processorWindow.getStartTime());
-                        }
+                       /* }*/
                     }
                 }
 
